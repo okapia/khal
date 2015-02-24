@@ -358,7 +358,16 @@ class U_Event(urwid.Text):
         if self.uid in self.eventcolumn.pane.deleted:
             self.eventcolumn.pane.deleted.remove(self.uid)
         else:
-            self.eventcolumn.pane.deleted.append(self.uid)
+            if self.event.recur:
+                overlay = urwid.Overlay(DeleteDialog(self.eventcolumn.pane.window.backtrack),
+                                        self.eventcolumn.pane,
+                                        'center',
+                                        ('relative', 70),
+                                        ('relative', 70),
+                                        None)
+                self.eventcolumn.pane.window.open(overlay)
+            else:
+                self.eventcolumn.pane.deleted.append(self.uid)
         self.set_title()
 
     def keypress(self, _, key):
@@ -769,6 +778,23 @@ class EventEditor(urwid.WidgetWrap):
             self._abort_confirmed = True
             return
         return super(EventEditor, self).keypress(size, key)
+
+
+class DeleteDialog(urwid.WidgetWrap):
+    def __init__(self, func):
+        lines = []
+        lines.append(urwid.Text(u'You are trying to delete a recursive event.'))
+        lines.append(urwid.Text(u'What do you want to delete?'))
+        lines.append(urwid.Text(u''))
+        buttons = urwid.Columns(
+            [urwid.Button(u'This instance', on_press=func),
+             urwid.Button(u'All future instances', on_press=func),
+             urwid.Button(u'All instances (past and future)', on_press=func),
+             urwid.Button(u'Nothing, Abort', on_press=func),
+             ])
+        lines.append(buttons)
+        content = urwid.Pile(lines)
+        urwid.WidgetWrap.__init__(self, urwid.LineBox(content))
 
 
 class ClassicView(Pane):
