@@ -350,22 +350,46 @@ class U_Event(urwid.Text):
         self.set_text(mark + ' ' + self.event.compact(self.this_date))
 
     def toggle_delete(self):
+        # TODO unify, either directly delete *normal* events as well
+        # or stage recurring deletetion as well
+        def delete_this(_):
+            self.eventcolumn.pane.collection.delete_this(
+                self.event.href, self.event.etag, self.event.account, self.event.recuid)
+            self.eventcolumn.pane.window.backtrack(),
+
+        def delete_future(_):
+            self.eventcolumn.pane.collection.delete_future(
+                self.event.href, self.event.etag, self.event.account, self.event.recuid)
+            self.eventcolumn.pane.window.backtrack(),
+
+        def delete_all(_):
+            if self.uid in self.eventcolumn.pane.deleted:
+                self.eventcolumn.pane.deleted.remove(self.uid)
+            else:
+                self.eventcolumn.pane.deleted.append(self.uid)
+            self.eventcolumn.pane.window.backtrack(),
+
         if self.event.readonly:
             self.eventcolumn.pane.window.alert(
                 ('light red',
                  'Calendar {} is read-only.'.format(self.event.calendar)))
             return
-        if self.uid in self.eventcolumn.pane.deleted:
-            self.eventcolumn.pane.deleted.remove(self.uid)
+
+        if self.event.recur:
+            overlay = urwid.Overlay(
+                DeleteDialog(
+                    delete_this,
+                    delete_future,
+                    delete_all,
+                    self.eventcolumn.pane.window.backtrack,
+                ),
+                self.eventcolumn.pane,
+                'center', ('relative', 80), ('relative', 30),
+                None)
+            self.eventcolumn.pane.window.open(overlay)
         else:
-            if self.event.recur:
-                overlay = urwid.Overlay(DeleteDialog(self.eventcolumn.pane.window.backtrack),
-                                        self.eventcolumn.pane,
-                                        'center',
-                                        ('relative', 70),
-                                        ('relative', 70),
-                                        None)
-                self.eventcolumn.pane.window.open(overlay)
+            if self.uid in self.eventcolumn.pane.deleted:
+                self.eventcolumn.pane.deleted.remove(self.uid)
             else:
                 self.eventcolumn.pane.deleted.append(self.uid)
         self.set_title()
@@ -781,16 +805,16 @@ class EventEditor(urwid.WidgetWrap):
 
 
 class DeleteDialog(urwid.WidgetWrap):
-    def __init__(self, func):
+    def __init__(self, this_func, future_func, all_func, abort_func):
         lines = []
         lines.append(urwid.Text(u'You are trying to delete a recursive event.'))
         lines.append(urwid.Text(u'What do you want to delete?'))
         lines.append(urwid.Text(u''))
         buttons = urwid.Columns(
-            [urwid.Button(u'This instance', on_press=func),
-             urwid.Button(u'All future instances', on_press=func),
-             urwid.Button(u'All instances (past and future)', on_press=func),
-             urwid.Button(u'Nothing, Abort', on_press=func),
+            [urwid.Button(u'This instance', on_press=this_func),
+             urwid.Button(u'Future instances', on_press=future_func),
+             urwid.Button(u'All instances', on_press=all_func),
+             urwid.Button(u'Nothing, Abort', on_press=abort_func),
              ])
         lines.append(buttons)
         content = urwid.Pile(lines)

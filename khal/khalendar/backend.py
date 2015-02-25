@@ -432,9 +432,9 @@ class SQLiteDb(object):
         specific Event from a Recursion set is returned, otherwise the Event
         returned exactly as saved in the db
         """
-        sql_s = 'SELECT href, etag, item FROM events WHERE hrefrecuid = ?;'
+        sql_s = 'SELECT href, etag, item, recuid FROM events WHERE hrefrecuid = ?;'
         result = self.sql_ex(sql_s, (href_rec_inst, ))
-        href, etag, item = result[0]
+        href, etag, item, recuid = result[0]
         return Event(item,
                      locale=self.locale,
                      start=start,
@@ -442,7 +442,7 @@ class SQLiteDb(object):
                      href=href,
                      calendar=self.calendar,
                      etag=etag,
-                     recuid=href_rec_inst,
+                     recuid=recuid,
                      )
 
     def search(self, search_string):

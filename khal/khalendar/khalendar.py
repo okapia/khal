@@ -144,6 +144,20 @@ class Calendar(object):
         self._storage.delete(href, etag)
         self._dbtool.delete(href)
 
+    def delete_this(self, href, etag, recuid):
+        """delete instance recuid from event
+        """
+        if self._readonly:
+            raise ReadOnlyCalendarError()
+        raise NotImplementedError()
+
+    def delete_future(self, href, etag, recuid):
+        """delete all future event instances after recuid
+        """
+        if self._readonly:
+            raise ReadOnlyCalendarError()
+        raise NotImplementedError()
+
     def _db_needs_update(self):
         if self.local_ctag() == self._dbtool.get_ctag():
             return False
@@ -250,6 +264,12 @@ class CalendarCollection(object):
 
     def delete(self, href, etag, calendar):
         self._calnames[calendar].delete(href, etag)
+
+    def delete_this(self, href, etag, calendar, recuid):
+        self._calnames[calendar].delete_this(href, etag, recuid)
+
+    def delete_future(self, href, etag, calendar, recuid):
+        self._calnames[calendar].delete_future(href, etag, recuid)
 
     def get_event(self, href, calendar):
         return self._calnames[calendar].get_event(href)
